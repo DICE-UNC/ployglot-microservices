@@ -51,17 +51,22 @@ public:
         }
     }
 
-    int get( char *url, char *objPath ) {
+    int get( char *url, char *sourcePath,  char *destPath ) {
         CURLcode res = CURLE_OK;
         writeDataInp_t writeDataInp;	// the "file descriptor" for our destination object
         openedDataObjInp_t openedDataObjInp;	// for closing iRODS object after writing
         int status;
 
+	FILE *fd;
+	fd = fopen(sourcePath, "rb"); /* open file to upload */
+	if(!fd) { return 1; /* can't continue */ }
+
+
         // Zero fill openedDataObjInp
         memset( &openedDataObjInp, 0, sizeof( openedDataObjInp_t ) );
 
         // Set up writeDataInp
-        snprintf( writeDataInp.objPath, MAX_NAME_LEN, "%s", objPath );
+        snprintf( writeDataInp.objPath, MAX_NAME_LEN, "%s", destPath );
         writeDataInp.l1descInx = 0;	// the object is yet to be created
         writeDataInp.rsComm = rsComm;
 
@@ -154,7 +159,7 @@ extern "C" {
 
 // =-=-=-=-=-=-=-
 // 1. Write a standard issue microservice
-    int irods_curl_get( msParam_t* url, msParam_t* dest_obj, ruleExecInfo_t* rei ) {
+    int irods_curl_get( msParam_t* url, msParam_t* source_obj, msParam_t* dest_obj, ruleExecInfo_t* rei ) {
         dataObjInp_t destObjInp, *myDestObjInp;	/* for parsing input object */
 
         // Sanity checks
@@ -174,7 +179,9 @@ extern "C" {
         irodsCurl myCurl( rei->rsComm );
 
         // Call irodsCurl::get
-        rei->status = myCurl.get( parseMspForStr( url ), destObjInp.objPath );
+	char *sourceStr = parseMspForStr(source_obj);
+
+        rei->status = myCurl.get( parseMspForStr( url ), sourceStr,  destObjInp.objPath );
 
         // Done
         return rei->status;
@@ -189,7 +196,7 @@ extern "C" {
         // =-=-=-=-=-=-=-
         // 3. allocate a microservice plugin which takes the number of function
         // params as a parameter to the constructor
-        irods::ms_table_entry* msvc = new irods::ms_table_entry( 2 );
+        irods::ms_table_entry* msvc = new irods::ms_table_entry( 3 );
 
         // =-=-=-=-=-=-=-
         // 4. add the microservice function as an operation to the plugin
