@@ -1,3 +1,5 @@
-postit2
-postit2.o
+main
+main.o
 *.png
+Makefile
+nbproject

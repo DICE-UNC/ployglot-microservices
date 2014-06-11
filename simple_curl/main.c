@@ -38,10 +38,42 @@
 
 #include <curl/curl.h>
 
+#define MAX_PATH_LEN 100
+
+typedef struct writeData_t {
+  char destPath[MAX_PATH_LEN];
+  FILE *fd;
+  //rsComm_t someIRODS stuff
+} writeData_t;
+
+typedef struct readData_t {
+  const char *readptr;
+  long sizeleft;
+} readData_t;
+
+static size_t write_callback(void *buffer, size_t size, size_t nmemb, void* userp)
+{
+  struct writeData_t *writeData = (struct writeData_t *)userp;
+
+  if (!writeData) {
+    return -11;
+  }
+
+  if (! writeData->fd) {
+    writeData->fd = fopen(writeData->destPath, "w+");
+  }
+
+  return fwrite(buffer, size, nmemb, writeData->fd);
+}
+  
 int main(int argc, char *argv[])
 {
   CURL *curl;
   CURLcode res;
+
+  char *destPath = "/tmp/y18.png";
+
+  writeData_t writeData;
 
   struct curl_httppost *formpost=NULL;
   struct curl_httppost *lastptr=NULL;
@@ -62,11 +94,20 @@ int main(int argc, char *argv[])
                CURLFORM_COPYCONTENTS, "png",
                CURLFORM_END);
 
+  //TODO: zero out writedata
+  
+  snprintf(writeData.destPath, MAX_PATH_LEN, "%s", destPath );
+  writeData.fd = 0;
+
+
   curl = curl_easy_init();
   if(curl) {
     /* what URL that receives this POST */
     curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:5000/");
     curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
+
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &write_callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &writeData);
 
     /* Perform the request, res will get the return code */
     res = curl_easy_perform(curl);
@@ -80,6 +121,14 @@ int main(int argc, char *argv[])
 
     /* then cleanup the formpost chain */
     curl_formfree(formpost);
+    //if outfile, close outfile
+
+    // close source file
+    if (writeData.fd) {
+      fclose(writeData.fd);
+    }
   }
   return 0;
 }
+
+

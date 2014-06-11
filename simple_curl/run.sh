@@ -2,6 +2,6 @@
 
 set -e
 
-gcc `curl-config --cflags` -c postit2.c
-gcc -o postit2 postit2.o `curl-config --libs`
-./postit2 > libcurl.png
+gcc `curl-config --cflags` -c main.c
+gcc -o main main.o `curl-config --libs`
+./main
