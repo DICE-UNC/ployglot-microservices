@@ -78,7 +78,7 @@ static size_t read_callback(void *buffer, size_t size, size_t nmemb, void* userp
   if (! readData->fd) {
     readData->fd = fopen(readData->sourcePath, "r");
   }
-
+  
   return fread(buffer, size, nmemb, readData->fd);
 }
   
@@ -91,18 +91,12 @@ int main(int argc, char *argv[])
   char *sourcePath = "y18.gif";
 
   writeData_t writeData;
+  readData_t readData;
 
   struct curl_httppost *formpost=NULL;
   struct curl_httppost *lastptr=NULL;
 
   curl_global_init(CURL_GLOBAL_ALL);
-
-  /* Fill in the file upload field */
-  curl_formadd(&formpost,
-               &lastptr,
-               CURLFORM_COPYNAME, "file",
-               CURLFORM_FILE, "y18.gif",
-               CURLFORM_END);
 
   /* Fill in the filename field */
   curl_formadd(&formpost,
@@ -110,17 +104,31 @@ int main(int argc, char *argv[])
                CURLFORM_COPYNAME, "output_format",
                CURLFORM_COPYCONTENTS, "png",
                CURLFORM_END);
+  
+  /* Fill in the filename field */
+  curl_formadd(&formpost,
+               &lastptr,
+               CURLFORM_COPYNAME, "file",
+               CURLFORM_FILENAME, sourcePath, //sourcePath
+               CURLFORM_STREAM, &readData,
+               CURLFORM_CONTENTSLENGTH, 100,
+               CURLFORM_CONTENTTYPE, "application/octet-stream",
+               CURLFORM_END);
 
   //TODO: zero out writedata
   
-  snprintf(writeData.destPath, MAX_PATH_LEN, "%s", destPath );
+  snprintf(readData.sourcePath, MAX_PATH_LEN, "%s", sourcePath);
+  readData.fd = 0;
+  
+  snprintf(writeData.destPath, MAX_PATH_LEN, "%s", destPath);
   writeData.fd = 0;
-
-
+  
   curl = curl_easy_init();
   if(curl) {
     /* what URL that receives this POST */
     curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:5000/");
+    curl_easy_setopt(curl, CURLOPT_READFUNCTION, &read_callback);
+    curl_easy_setopt(curl, CURLOPT_READDATA, &readData);
     curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &write_callback);
@@ -138,7 +146,6 @@ int main(int argc, char *argv[])
 
     /* then cleanup the formpost chain */
     curl_formfree(formpost);
-    //if outfile, close outfile
 
     // close source file
     if (writeData.fd) {
