@@ -67,10 +67,6 @@ public:
         
         int status;
 
-	FILE *fd;
-	fd = fopen(sourcePath, "rb"); /* open file to upload */
-	if(!fd) { return 1; /* can't continue */ }
-
 	struct curl_httppost *formpost=NULL;
 	struct curl_httppost *lastptr=NULL;
 
