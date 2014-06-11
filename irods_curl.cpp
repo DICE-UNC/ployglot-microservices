@@ -28,12 +28,12 @@ typedef struct {
 
 class irodsCurl {
 private:
-    // iRODS server handle
+    // iRODS serv, char *destPath er handle
     rsComm_t *rsComm;
 
     // cURL handle
     CURL *curl;
-
+ 
 
 public:
     irodsCurl( rsComm_t *comm ) {
@@ -51,7 +51,7 @@ public:
         }
     }
 
-    int get( char *url, char *sourcePath,  char *destPath ) {
+    int get( char *url, char *sourcePath, char *destPath, char *ext) {
 
 	CURL *curl;
 	CURLcode res = CURLE_OK;
@@ -79,7 +79,7 @@ public:
 	curl_formadd(&formpost,
 	&lastptr,
 	CURLFORM_COPYNAME, "output_format",
-	CURLFORM_COPYCONTENTS, "jpg",
+	CURLFORM_COPYCONTENTS, ext,
 	CURLFORM_END);
 
         // Zero fill openedDataObjInp
@@ -185,7 +185,8 @@ extern "C" {
 
 // =-=-=-=-=-=-=-
 // 1. Write a standard issue microservice
-    int irods_curl_get( msParam_t* url, msParam_t* source_obj, msParam_t* dest_obj, ruleExecInfo_t* rei ) {
+    int irods_curl_get( msParam_t* url, msParam_t* source_obj, msParam_t* ext_obj,
+                                        msParam_t* dest_obj, ruleExecInfo_t* rei ) {
         dataObjInp_t destObjInp, *myDestObjInp;	/* for parsing input object */
 
         // Sanity checks
@@ -193,6 +194,48 @@ extern "C" {
             rodsLog( LOG_ERROR, "irods_curl_get: Input rei or rsComm is NULL." );
             return ( SYS_INTERNAL_NULL_INPUT_ERR );
         }
+
+	// get destination path from sourcePath and exten.
+	char *sourceStr = parseMspForStr(source_obj);
+	char *extStr = parseMspForStr(ext_obj);
+
+	char *source = "/tempZone/home/public/new.png";
+
+	char tmpSource[strlen(source) + 10];
+
+	strcpy(tmpSource, source);
+
+
+    	char *lastdot = strrchr (tmpSource, '.');
+	char *lastsep = ('/' == 0) ? NULL : strrchr (tmpSource, '/');
+
+	if (lastdot != NULL)
+	{
+        // and it's before the extenstion separator.
+
+        	if (lastsep != NULL)
+		{
+            		if (lastsep < lastdot)
+			{
+                	// then remove it.
+
+                	*lastdot = '\0';
+            		}
+        	}
+		else
+		{
+            	// Has extension separator with no path separator.
+
+            	*lastdot = '\0';
+        	}
+    	}
+        char destStr[strlen(source)+10];
+
+	snprintf(destStr, strlen(source) + 10, "%s%s%s", tmpSource, ".", extStr);
+
+
+	fillStrInMsParam(dest_obj, destStr);
+
 
         // Get path of destination object
         rei->status = parseMspForDataObjInp( dest_obj, &destObjInp, &myDestObjInp, 0 );
@@ -205,9 +248,8 @@ extern "C" {
         irodsCurl myCurl( rei->rsComm );
 
         // Call irodsCurl::get
-	char *sourceStr = parseMspForStr(source_obj);
 
-        rei->status = myCurl.get( parseMspForStr( url ), sourceStr,  destObjInp.objPath );
+        rei->status = myCurl.get( parseMspForStr( url ), sourceStr,  destObjInp.objPath, extStr);
 
         // Done
         return rei->status;
@@ -222,7 +264,7 @@ extern "C" {
         // =-=-=-=-=-=-=-
         // 3. allocate a microservice plugin which takes the number of function
         // params as a parameter to the constructor
-        irods::ms_table_entry* msvc = new irods::ms_table_entry( 3 );
+        irods::ms_table_entry* msvc = new irods::ms_table_entry( 4 );
 
         // =-=-=-=-=-=-=-
         // 4. add the microservice function as an operation to the plugin
