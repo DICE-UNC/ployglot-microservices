@@ -102,8 +102,8 @@ public:
         writeDataInp.rsComm = rsComm;
 
         // Set up writeDataInp
-        snprintf(readData.path, MAX_NAME_LEN, "%s", sourcePath);
-        writeDataInp.fd = 0;	// the object is yet to be created
+        snprintf(readData.sourcePath, MAX_NAME_LEN, "%s", sourcePath);
+        readData.fd = 0;	// the object is yet to be created
 
         // Set up easy handler
  	curl = curl_easy_init();
