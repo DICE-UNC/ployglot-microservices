@@ -47,8 +47,9 @@ typedef struct writeData_t {
 } writeData_t;
 
 typedef struct readData_t {
-  const char *readptr;
-  long sizeleft;
+  char sourcePath[MAX_PATH_LEN];
+  FILE *fd;
+  long offset;
 } readData_t;
 
 static size_t write_callback(void *buffer, size_t size, size_t nmemb, void* userp)
@@ -66,12 +67,28 @@ static size_t write_callback(void *buffer, size_t size, size_t nmemb, void* user
   return fwrite(buffer, size, nmemb, writeData->fd);
 }
   
+static size_t read_callback(void *buffer, size_t size, size_t nmemb, void* userp)
+{
+  struct readData_t *readData = (struct readData_t *)userp;
+
+  if (!readData) {
+    return -11;
+  }
+
+  if (! readData->fd) {
+    readData->fd = fopen(readData->sourcePath, "r");
+  }
+
+  return fread(buffer, size, nmemb, readData->fd);
+}
+  
 int main(int argc, char *argv[])
 {
   CURL *curl;
   CURLcode res;
 
   char *destPath = "/tmp/y18.png";
+  char *sourcePath = "y18.gif";
 
   writeData_t writeData;
 
