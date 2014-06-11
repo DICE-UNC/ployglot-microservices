@@ -52,7 +52,9 @@ public:
     }
 
     int get( char *url, char *sourcePath,  char *destPath ) {
-        CURLcode res = CURLE_OK;
+
+	CURL *curl;
+	CURLcode res = CURLE_OK;
         writeDataInp_t writeDataInp;	// the "file descriptor" for our destination object
         openedDataObjInp_t openedDataObjInp;	// for closing iRODS object after writing
         int status;
@@ -61,6 +63,24 @@ public:
 	fd = fopen(sourcePath, "rb"); /* open file to upload */
 	if(!fd) { return 1; /* can't continue */ }
 
+	struct curl_httppost *formpost=NULL;
+	struct curl_httppost *lastptr=NULL;
+
+	curl_global_init(CURL_GLOBAL_ALL);
+
+	/* Fill in the file upload field */
+	curl_formadd(&formpost,
+	&lastptr,
+	CURLFORM_COPYNAME, "file",
+	CURLFORM_FILE, sourcePath,
+	CURLFORM_END);
+
+	/* Fill in the filename field */
+	curl_formadd(&formpost,
+	&lastptr,
+	CURLFORM_COPYNAME, "output_format",
+	CURLFORM_COPYCONTENTS, "jpg",
+	CURLFORM_END);
 
         // Zero fill openedDataObjInp
         memset( &openedDataObjInp, 0, sizeof( openedDataObjInp_t ) );
@@ -71,9 +91,15 @@ public:
         writeDataInp.rsComm = rsComm;
 
         // Set up easy handler
+ 	curl = curl_easy_init();
         curl_easy_setopt( curl, CURLOPT_WRITEFUNCTION, &irodsCurl::my_write_obj );
         curl_easy_setopt( curl, CURLOPT_WRITEDATA, &writeDataInp );
-        curl_easy_setopt( curl, CURLOPT_URL, url );
+
+	/* what URL that receives this POST */
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
+
+
 
         // CURL call
         res = curl_easy_perform( curl );
