@@ -18,12 +18,17 @@
 
 
 
-typedef struct {
+typedef struct writeDataInp_t {
     char objPath[MAX_NAME_LEN];
     int l1descInx;
     rsComm_t *rsComm;
 } writeDataInp_t;
 
+
+typedef struct readData_t {
+  char sourcePath[MAX_NAME_LEN];
+  FILE *fd;
+} readData_t;
 
 
 class irodsCurl {
@@ -57,6 +62,9 @@ public:
 	CURLcode res = CURLE_OK;
         writeDataInp_t writeDataInp;	// the "file descriptor" for our destination object
         openedDataObjInp_t openedDataObjInp;	// for closing iRODS object after writing
+        
+        readData_t readData;
+        
         int status;
 
 	FILE *fd;
@@ -68,19 +76,22 @@ public:
 
 	curl_global_init(CURL_GLOBAL_ALL);
 
-	/* Fill in the file upload field */
-	curl_formadd(&formpost,
-	&lastptr,
-	CURLFORM_COPYNAME, "file",
-	CURLFORM_FILE, sourcePath,
-	CURLFORM_END);
+        /* Fill in the file upload field */
+        curl_formadd(&formpost,
+                &lastptr,
+                CURLFORM_COPYNAME, "output_format",
+                CURLFORM_COPYCONTENTS, ext,
+                CURLFORM_END);
 
-	/* Fill in the filename field */
-	curl_formadd(&formpost,
-	&lastptr,
-	CURLFORM_COPYNAME, "output_format",
-	CURLFORM_COPYCONTENTS, ext,
-	CURLFORM_END);
+        /* Fill in the filename field */
+        curl_formadd(&formpost,
+                &lastptr,
+                CURLFORM_COPYNAME, "file",
+                CURLFORM_FILENAME, "y18.gif", //This needs to be the filename of the upload
+                CURLFORM_STREAM, &readData,
+                CURLFORM_CONTENTSLENGTH, 100,  //This needs to be the size of the upload
+                CURLFORM_CONTENTTYPE, "application/octet-stream",
+                CURLFORM_END);
 
         // Zero fill openedDataObjInp
         memset( &openedDataObjInp, 0, sizeof( openedDataObjInp_t ) );
@@ -90,16 +101,23 @@ public:
         writeDataInp.l1descInx = 0;	// the object is yet to be created
         writeDataInp.rsComm = rsComm;
 
+        // Set up writeDataInp
+        snprintf(readData.path, MAX_NAME_LEN, "%s", sourcePath);
+        writeDataInp.fd = 0;	// the object is yet to be created
+
         // Set up easy handler
  	curl = curl_easy_init();
-        curl_easy_setopt( curl, CURLOPT_WRITEFUNCTION, &irodsCurl::my_write_obj );
-        curl_easy_setopt( curl, CURLOPT_WRITEDATA, &writeDataInp );
+
 
 	/* what URL that receives this POST */
-	curl_easy_setopt(curl, CURLOPT_URL, url);
-	curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
+        curl_easy_setopt(curl, CURLOPT_URL, url);
 
+        curl_easy_setopt(curl, CURLOPT_READFUNCTION, &irodsCurl::my_read_obj);
+        curl_easy_setopt(curl, CURLOPT_READDATA, &readData);
+        curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
 
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &irodsCurl::my_write_obj);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &writeDataInp );
 
         // CURL call
         res = curl_easy_perform( curl );
@@ -118,10 +136,26 @@ public:
                          writeDataInp.objPath, status );
             }
         }
+        
+        /* then cleanup the formpost chain */
+        curl_formfree(formpost);
 
         return res;
     }
 
+    static size_t my_read_obj(void *buffer, size_t size, size_t nmemb, void* userp) {
+        struct readData_t *readData = (struct readData_t *) userp;
+
+        if (!readData) {
+            return -11;
+        }
+
+        if (!readData->fd) {
+            readData->fd = fopen(readData->sourcePath, "r");
+        }
+
+        return fread(buffer, size, nmemb, readData->fd);
+    }
 
     // Custom callback function for the curl handler, to write to an iRODS object
     static size_t my_write_obj( void *buffer, size_t size, size_t nmemb, writeDataInp_t *writeDataInp ) {
