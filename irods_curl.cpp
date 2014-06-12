@@ -56,6 +56,26 @@ public:
         }
     }
 
+    //Gets file name from a path
+    char *getName (const char *path) {
+
+	char tmpPath[strlen(path)];
+      
+	strcpy(tmpPath, path);
+
+        char* p;
+
+        char* outStr;
+        outStr = (char*)malloc(strlen(path));
+
+        p = strrchr (tmpPath, '/'); 
+
+       	snprintf(outStr, strlen(path), "%s", p +1);
+
+	return outStr;
+}
+
+
     int get( char *url, char *sourcePath, char *destPath, char *ext) {
 
 	CURL *curl;
@@ -66,6 +86,7 @@ public:
         readData_t readData;
         
         int status;
+	
 
 	struct curl_httppost *formpost=NULL;
 	struct curl_httppost *lastptr=NULL;
@@ -83,7 +104,7 @@ public:
         curl_formadd(&formpost,
                 &lastptr,
                 CURLFORM_COPYNAME, "file",
-                CURLFORM_FILENAME, "y18.gif", //This needs to be the filename of the upload
+                CURLFORM_FILENAME, getName(sourcePath), 
                 CURLFORM_STREAM, &readData,
                 CURLFORM_CONTENTSLENGTH, 100,  //This needs to be the size of the upload
                 CURLFORM_CONTENTTYPE, "application/octet-stream",
@@ -213,8 +234,8 @@ public:
 
 extern "C" {
 
-// =-=-=-=-=-=-=-
-// 1. Write a standard issue microservice
+
+
     int irods_curl_get( msParam_t* url, msParam_t* source_obj, msParam_t* ext_obj,
                                         msParam_t* dest_obj, ruleExecInfo_t* rei ) {
         dataObjInp_t destObjInp, *myDestObjInp;	/* for parsing input object */
