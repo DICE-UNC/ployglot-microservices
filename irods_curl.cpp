@@ -18,15 +18,15 @@
 
 
 
-typedef struct writeDataInp_t {
-    char objPath[MAX_NAME_LEN];
-    int l1descInx;
+typedef struct writeData_t {
+    char path[MAX_NAME_LEN];
+    int desc;
     rsComm_t *rsComm;
-} writeDataInp_t;
+} writeData_t;
 
 
 typedef struct readData_t {
-  char sourcePath[MAX_NAME_LEN];
+  char path[MAX_NAME_LEN];
   FILE *fd;
 } readData_t;
 
@@ -59,7 +59,7 @@ public:
     //Gets file name from a path
     char *getName (const char *path) {
 
-	char tmpPath[strlen(path)];
+	char tmpPath[strlen(path)]; //FIXME: does tmpPath do anything? why do we have this?
       
 	strcpy(tmpPath, path);
 
@@ -80,13 +80,12 @@ public:
 
 	CURL *curl;
 	CURLcode res = CURLE_OK;
-        writeDataInp_t writeDataInp;	// the "file descriptor" for our destination object
-        openedDataObjInp_t openedDataObjInp;	// for closing iRODS object after writing
+        writeData_t writeData;	                // the "file descriptor" for our destination object
+        openedDataObjInp_t openedTarget;	// for closing iRODS object after writing
         
         readData_t readData;
         
         int status;
-	
 
 	struct curl_httppost *formpost=NULL;
 	struct curl_httppost *lastptr=NULL;
@@ -111,20 +110,19 @@ public:
                 CURLFORM_END);
 
         // Zero fill openedDataObjInp
-        memset( &openedDataObjInp, 0, sizeof( openedDataObjInp_t ) );
+        memset( &openedTarget, 0, sizeof( openedDataObjInp_t ) );
+
+        // Set up writeData
+        snprintf(writeData.path, MAX_NAME_LEN, "%s", destPath);
+        writeData.desc = 0;	                 // the object is yet to be created
+        writeData.rsComm = rsComm;
 
         // Set up writeDataInp
-        snprintf( writeDataInp.objPath, MAX_NAME_LEN, "%s", destPath );
-        writeDataInp.l1descInx = 0;	// the object is yet to be created
-        writeDataInp.rsComm = rsComm;
-
-        // Set up writeDataInp
-        snprintf(readData.sourcePath, MAX_NAME_LEN, "%s", sourcePath);
+        snprintf(readData.path, MAX_NAME_LEN, "%s", sourcePath);
         readData.fd = 0;	// the object is yet to be created
 
         // Set up easy handler
  	curl = curl_easy_init();
-
 
 	/* what URL that receives this POST */
         curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -145,12 +143,12 @@ public:
         }
 
         // close iRODS object
-        if ( writeDataInp.l1descInx ) {
-            openedDataObjInp.l1descInx = writeDataInp.l1descInx;
-            status = rsDataObjClose( rsComm, &openedDataObjInp );
-            if ( status < 0 ) {
-                rodsLog( LOG_ERROR, "irodsCurl::get: rsDataObjClose failed for %s, status = %d",
-                         writeDataInp.objPath, status );
+        if (writeData.desc) {
+            openedTarget.l1descInx = writeData.desc;
+            status = rsDataObjClose(rsComm, &openedTarget);
+            if (status < 0) {
+                rodsLog(LOG_ERROR, "irodsCurl::get: rsDataObjClose failed for %s, status = %d",
+                         writeData.path, status);
             }
         }
         
@@ -168,73 +166,67 @@ public:
         }
 
         if (!readData->fd) {
-            readData->fd = fopen(readData->sourcePath, "r");
+            readData->fd = fopen(readData->path, "r");
         }
 
         return fread(buffer, size, nmemb, readData->fd);
     }
 
     // Custom callback function for the curl handler, to write to an iRODS object
-    static size_t my_write_obj( void *buffer, size_t size, size_t nmemb, writeDataInp_t *writeDataInp ) {
-        dataObjInp_t dataObjInp;	// input struct for rsDataObjCreate
-        openedDataObjInp_t openedDataObjInp;	// input struct for rsDataObjWrite
+    static size_t my_write_obj(void *buffer, size_t size, size_t nmemb, writeDataInp_t *writeData) {
+        dataObjInp_t file;	// input struct for rsDataObjCreate
+        openedDataObjInp_t openedFile;	// input struct for rsDataObjWrite
         bytesBuf_t bytesBuf;	// input buffer for rsDataObjWrite
         size_t written;	// return value
 
-        int l1descInx;
-
+        int desc;
 
         // Make sure we have something to write to
-        if ( !writeDataInp ) {
-            rodsLog( LOG_ERROR, "my_write_obj: writeDataInp is NULL, status = %d", SYS_INTERNAL_NULL_INPUT_ERR );
+        if (!writeData) {
+            rodsLog( LOG_ERROR, "my_write_obj: writeData is NULL, status = %d", SYS_INTERNAL_NULL_INPUT_ERR );
             return SYS_INTERNAL_NULL_INPUT_ERR;
         }
 
         // Zero fill input structs
-        memset( &dataObjInp, 0, sizeof( dataObjInp_t ) );
-        memset( &openedDataObjInp, 0, sizeof( openedDataObjInp_t ) );
+        memset( &file, 0, sizeof( dataObjInp_t ) );
+        memset( &openedFile, 0, sizeof( openedDataObjInp_t ) );
 
 
         // If this is the first call we need to create our data object before writing to it
-        if ( !writeDataInp->l1descInx ) {
-            strncpy( dataObjInp.objPath, writeDataInp->objPath, MAX_NAME_LEN );
+        if (!writeData->desc) {
+            strncpy(file.objPath, writeData->path, MAX_NAME_LEN);
 
             // Overwrite existing file (for this tutorial only, in case the example has been run before)
-            addKeyVal( &dataObjInp.condInput, FORCE_FLAG_KW, "" );
+            addKeyVal(&file.condInput, FORCE_FLAG_KW, "");
 
-            writeDataInp->l1descInx = rsDataObjCreate( writeDataInp->rsComm, &dataObjInp );
-
+            writeData->desc = rsDataObjCreate(writeData->rsComm, &file);
 
             // No create?
-            if ( writeDataInp->l1descInx <= 2 ) {
-                rodsLog( LOG_ERROR, "my_write_obj: rsDataObjCreate failed for %s, status = %d", dataObjInp.objPath, writeDataInp->l1descInx );
-                return ( writeDataInp->l1descInx );
+            if ( writeData->desc <= 2 ) {
+                rodsLog( LOG_ERROR, "my_write_obj: rsDataObjCreate failed for %s, status = %d", file.objPath, writeData->desc);
+                return (writeData->desc);
             }
         }
 
 
         // Set up input buffer for rsDataObjWrite
-        bytesBuf.len = ( int )( size * nmemb );
+        bytesBuf.len = (int)(size * nmemb);
         bytesBuf.buf = buffer;
 
-
         // Set up input struct for rsDataObjWrite
-        openedDataObjInp.l1descInx = writeDataInp->l1descInx;;
-        openedDataObjInp.len = bytesBuf.len;
-
+        openedFile.desc = writeData->desc;
+        openedFile.len = bytesBuf.len;
 
         // Write to data object
-        written = rsDataObjWrite( writeDataInp->rsComm, &openedDataObjInp, &bytesBuf );
+        written = rsDataObjWrite(writeData->rsComm, &openedFile, &bytesBuf);
 
-        return ( written );
+        return (written);
     }
 
 }; // class irodsCurl
 
 
 extern "C" {
-
-
 
     int irods_curl_get( msParam_t* url, msParam_t* source_obj, msParam_t* ext_obj,
                                         msParam_t* dest_obj, ruleExecInfo_t* rei ) {
@@ -327,9 +319,4 @@ extern "C" {
         // 5. return the newly created microservice plugin
         return msvc;
     }
-
-
-
 }	// extern "C"
-
-
