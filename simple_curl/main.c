@@ -49,7 +49,6 @@ typedef struct writeData_t {
 typedef struct readData_t {
   char sourcePath[MAX_PATH_LEN];
   FILE *fd;
-  long offset;
 } readData_t;
 
 static size_t write_callback(void *buffer, size_t size, size_t nmemb, void* userp)
