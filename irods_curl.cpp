@@ -113,8 +113,11 @@ public:
                 CURLFORM_CONTENTTYPE, "application/octet-stream",
                 CURLFORM_END);
 
-        // Zero fill openedDataObjInp
-        memset( &openedTarget, 0, sizeof( openedDataObjInp_t ) );
+        // Zero fill structs
+        memset(&openedSource, 0, sizeof(openedDataObjInp_t));
+        memset(&readData, 0, sizeof(readData_t));
+        memset(&openedTarget, 0, sizeof(openedDataObjInp_t));
+        memset(&writeData, 0, sizeof(writeData_t));
 
         // Set up writeData
         snprintf(writeData.path, MAX_NAME_LEN, "%s", destPath);
