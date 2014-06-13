@@ -85,10 +85,10 @@ public:
 
         readData_t readData;
         openedDataObjInp_t openedSource;
-        
+
         writeData_t writeData;	                // the "file descriptor" for our destination object
         openedDataObjInp_t openedTarget;	// for closing iRODS object after writing
-        
+
         int status;
 
 	struct curl_httppost *formpost=NULL;
@@ -123,7 +123,8 @@ public:
 
         // Set up writeDataInp
         snprintf(readData.path, MAX_NAME_LEN, "%s", sourcePath);
-        readData.fd = 0;	// the object is yet to be created
+        readData.desc = 0;	// the object is yet to be created
+	readData.rsComm = rsComm;
 
         // Set up easy handler
  	curl = curl_easy_init();
@@ -209,7 +210,7 @@ public:
 	openedFile.l1descInx = readData->desc;
         openedFile.len = bytesBuf.len;
         
-        bytesRead = rsDataObjRead(rsComm, &openedFile, &bytesBuf);
+        bytesRead = rsDataObjRead(readData->rsComm, &openedFile, &bytesBuf);
         if (bytesRead < 0) {
             rodsLog(LOG_ERROR, "my_read_obj: PROBLEM READING FILE. Status =  %d", bytesRead);
             return bytesRead;
@@ -288,11 +289,11 @@ extern "C" {
 	char *sourceStr = parseMspForStr(source_obj);
 	char *extStr = parseMspForStr(ext_obj);
 
-	char *source = "/tempZone/home/public/new.png";
+	//char *source = "/tempZone/home/public/new.png";
 
-	char tmpSource[strlen(source) + 10];
+	char tmpSource[strlen(sourceStr) + 10];
 
-	strcpy(tmpSource, source);
+	strcpy(tmpSource, sourceStr);
 
 
     	char *lastdot = strrchr (tmpSource, '.');
@@ -318,9 +319,9 @@ extern "C" {
             	*lastdot = '\0';
         	}
     	}
-        char destStr[strlen(source)+10];
+        char destStr[strlen(sourceStr)+10];
 
-	snprintf(destStr, strlen(source) + 10, "%s%s%s", tmpSource, ".", extStr);
+	snprintf(destStr, strlen(sourceStr) + 10, "%s%s%s", tmpSource, ".", extStr);
 
 
 	fillStrInMsParam(dest_obj, destStr);
