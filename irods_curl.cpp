@@ -329,6 +329,7 @@ extern "C" {
 	fillStrInMsParam(dest_obj, destStr);
 
 
+        //TODO: get rid of destObjInp and myDestObjInp and this whole block, just pass the destPath directly to myCurl.get
         // Get path of destination object
         rei->status = parseMspForDataObjInp( dest_obj, &destObjInp, &myDestObjInp, 0 );
         if ( rei->status < 0 ) {
