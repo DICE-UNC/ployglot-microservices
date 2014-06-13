@@ -146,13 +146,21 @@ public:
             rodsLog( LOG_ERROR, "irodsCurl::get: cURL error: %s", curl_easy_strerror( res ) );
         }
 
-        // close iRODS object
+        // close iRODS objects
         if (writeData.desc) {
             openedTarget.l1descInx = writeData.desc;
             status = rsDataObjClose(rsComm, &openedTarget);
             if (status < 0) {
                 rodsLog(LOG_ERROR, "irodsCurl::get: rsDataObjClose failed for %s, status = %d",
                          writeData.path, status);
+            }
+        }
+        if (readData.desc) {
+            openedSource.l1descInx = readData.desc;
+            status = rsDataObjClose(rsComm, &openedSource);
+            if (status < 0) {
+                rodsLog(LOG_ERROR, "irodsCurl::get: rsDataObjClose failed for %s, status = %d",
+                         readData.path, status);
             }
         }
         
