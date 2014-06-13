@@ -1,3 +1,4 @@
+
 // =-=-=-=-=-=-=-
 #include "apiHeaderAll.hpp"
 #include "msParam.hpp"
@@ -132,7 +133,7 @@ public:
         curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
 
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &irodsCurl::my_write_obj);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &writeDataInp );
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &writeData);
 
         // CURL call
         res = curl_easy_perform( curl );
@@ -173,7 +174,7 @@ public:
     }
 
     // Custom callback function for the curl handler, to write to an iRODS object
-    static size_t my_write_obj(void *buffer, size_t size, size_t nmemb, writeDataInp_t *writeData) {
+    static size_t my_write_obj(void *buffer, size_t size, size_t nmemb, writeData_t *writeData) {
         dataObjInp_t file;	// input struct for rsDataObjCreate
         openedDataObjInp_t openedFile;	// input struct for rsDataObjWrite
         bytesBuf_t bytesBuf;	// input buffer for rsDataObjWrite
@@ -214,7 +215,7 @@ public:
         bytesBuf.buf = buffer;
 
         // Set up input struct for rsDataObjWrite
-        openedFile.desc = writeData->desc;
+	openedFile.l1descInx = writeData->desc;
         openedFile.len = bytesBuf.len;
 
         // Write to data object
