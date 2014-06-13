@@ -109,7 +109,7 @@ public:
                 CURLFORM_COPYNAME, "file",
                 CURLFORM_FILENAME, getName(sourcePath), 
                 CURLFORM_STREAM, &readData,
-                CURLFORM_CONTENTSLENGTH, 100,  //This needs to be the size of the upload
+                CURLFORM_CONTENTSLENGTH, 0,  //This needs to be the size of the upload
                 CURLFORM_CONTENTTYPE, "application/octet-stream",
                 CURLFORM_END);
 
@@ -177,6 +177,8 @@ public:
 
     static size_t my_read_obj(void *buffer, size_t size, size_t nmemb, void* userp) {
         struct readData_t *readData = (struct readData_t *) userp;
+        rodsLog(LOG_ERROR, "my_read_obj: called");
+        return 0;  //Bail out immediately
 
         dataObjInp_t file;
         openedDataObjInp_t openedFile;
@@ -203,7 +205,7 @@ public:
 //            readData->desc = rsDataObjOpen(readData->rsComm, &file);
             if (readData->desc < 0) { //TODO: <= 2 instead of < 0? Look up rsDataObjOpen return codes
                 rodsLog(LOG_ERROR, "my_read_obj: PROBLEM OPENING DATA OBJECT. Status =  %d", readData->desc);
-                return readData->desc;
+                return CURL_READFUNC_ABORT;
             }
         }
 
@@ -219,7 +221,7 @@ public:
 //        bytesRead = rsDataObjRead(readData->rsComm, &openedFile, &bytesBuf);
         if (bytesRead < 0) {
             rodsLog(LOG_ERROR, "my_read_obj: PROBLEM READING FILE. Status =  %d", bytesRead);
-            return bytesRead;
+            return CURL_READFUNC_ABORT;
         }
         return (bytesRead);
     }
@@ -234,7 +236,7 @@ public:
         // Make sure we have something to write to
         if (!writeData) {
             rodsLog( LOG_ERROR, "my_write_obj: writeData is NULL, status = %d", SYS_INTERNAL_NULL_INPUT_ERR );
-            return SYS_INTERNAL_NULL_INPUT_ERR;
+            return CURL_READFUNC_ABORT;
         }
 
         // Zero fill input structs
@@ -254,10 +256,9 @@ public:
             // No create?
             if ( writeData->desc <= 2 ) {
                 rodsLog( LOG_ERROR, "my_write_obj: rsDataObjCreate failed for %s, status = %d", file.objPath, writeData->desc);
-                return (writeData->desc);
+                return CURL_READFUNC_ABORT;
             }
         }
-
 
         // Set up input buffer for rsDataObjWrite
         bytesBuf.len = (int)(size * nmemb);
