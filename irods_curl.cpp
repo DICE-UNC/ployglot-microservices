@@ -28,7 +28,8 @@ typedef struct writeData_t {
 
 typedef struct readData_t {
   char path[MAX_NAME_LEN];
-  FILE *fd;
+  int desc;
+  rsComm_t *rsComm;
 } readData_t;
 
 
@@ -81,10 +82,12 @@ public:
 
 	CURL *curl;
 	CURLcode res = CURLE_OK;
+
+        readData_t readData;
+        openedDataObjInp_t openedSource;
+        
         writeData_t writeData;	                // the "file descriptor" for our destination object
         openedDataObjInp_t openedTarget;	// for closing iRODS object after writing
-        
-        readData_t readData;
         
         int status;
 
@@ -162,15 +165,48 @@ public:
     static size_t my_read_obj(void *buffer, size_t size, size_t nmemb, void* userp) {
         struct readData_t *readData = (struct readData_t *) userp;
 
+        dataObjInp_t file;
+        openedDataObjInp_t openedFile;
+        bytesBuf_t bytesBuf;
+        
+        size_t bytesRead;
+        
+        //Make sure we have something to read from
         if (!readData) {
-            return -11;
+            rodsLog(LOG_ERROR, "my_read_obj: readData is NULL, status = %d", SYS_INTERNAL_NULL_INPUT_ERR);
+            return SYS_INTERNAL_NULL_INPUT_ERR;
         }
 
-        if (!readData->fd) {
-            readData->fd = fopen(readData->path, "r");
+        //Zero fill input structs
+        memset(&file, 0, sizeof (dataObjInp_t));
+        memset(&openedFile, 0, sizeof (openedDataObjInp_t));
+        memset(&bytesBuf, 0, sizeof (bytesBuf_t));
+
+        //If this is the first call we need to create our data object before writing to it
+        if (!readData->desc) {
+            strncpy(file.objPath, readData->path, MAX_NAME_LEN);
+
+            readData->desc = rsDataObjOpen(readData->rsComm, &file);
+            if (readData->desc < 0) { //TODO: <= 2 instead of < 0? Look up rsDataObjOpen return codes
+                rodsLog(LOG_ERROR, "my_read_obj: PROBLEM OPENING DATA OBJECT. Status =  %d", readData->desc);
+                return readData->desc;
+            }
         }
 
-        return fread(buffer, size, nmemb, readData->fd);
+        //Setup buffer for rsDataObjRead
+        bytesBuf.len = (int)(size * nmemb);
+        bytesBuf.buf = buffer;
+
+        //Setup input struct for rsDataObjRead
+	openedFile.l1descInx = readData->desc;
+        openedFile.len = bytesBuf.len;
+        
+        bytesRead = rsDataObjRead(rsComm, &openedFile, &bytesBuf);
+        if (bytesRead < 0) {
+            rodsLog(LOG_ERROR, "my_read_obj: PROBLEM READING FILE. Status =  %d", bytesRead);
+            return bytesRead;
+        }
+        return (bytesRead);
     }
 
     // Custom callback function for the curl handler, to write to an iRODS object
@@ -180,8 +216,6 @@ public:
         bytesBuf_t bytesBuf;	// input buffer for rsDataObjWrite
         size_t written;	// return value
 
-        int desc;
-
         // Make sure we have something to write to
         if (!writeData) {
             rodsLog( LOG_ERROR, "my_write_obj: writeData is NULL, status = %d", SYS_INTERNAL_NULL_INPUT_ERR );
@@ -189,8 +223,9 @@ public:
         }
 
         // Zero fill input structs
-        memset( &file, 0, sizeof( dataObjInp_t ) );
-        memset( &openedFile, 0, sizeof( openedDataObjInp_t ) );
+        memset(&file, 0, sizeof(dataObjInp_t));
+        memset(&openedFile, 0, sizeof(openedDataObjInp_t));
+        memset(&bytesBuf, 0, sizeof(bytesBuf_t));
 
 
         // If this is the first call we need to create our data object before writing to it
@@ -198,7 +233,7 @@ public:
             strncpy(file.objPath, writeData->path, MAX_NAME_LEN);
 
             // Overwrite existing file (for this tutorial only, in case the example has been run before)
-            addKeyVal(&file.condInput, FORCE_FLAG_KW, "");
+            addKeyVal(&file.condInput, FORCE_FLAG_KW, "");  //TODO: this should be an error, not an overwrite
 
             writeData->desc = rsDataObjCreate(writeData->rsComm, &file);
 
@@ -220,6 +255,8 @@ public:
 
         // Write to data object
         written = rsDataObjWrite(writeData->rsComm, &openedFile, &bytesBuf);
+        
+        //TODO: should we be handling error cases when written < 0? Check return values of rsDataObjWrite
 
         return (written);
     }
