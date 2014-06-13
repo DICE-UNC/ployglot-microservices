@@ -158,7 +158,8 @@ public:
         }
         if (readData.desc) {
             openedSource.l1descInx = readData.desc;
-            status = rsDataObjClose(rsComm, &openedSource);
+            status = 0;
+//            status = rsDataObjClose(rsComm, &openedSource);
             if (status < 0) {
                 rodsLog(LOG_ERROR, "irodsCurl::get: rsDataObjClose failed for %s, status = %d",
                          readData.path, status);
@@ -195,7 +196,8 @@ public:
         if (!readData->desc) {
             strncpy(file.objPath, readData->path, MAX_NAME_LEN);
 
-            readData->desc = rsDataObjOpen(readData->rsComm, &file);
+            readData->desc = 5;
+//            readData->desc = rsDataObjOpen(readData->rsComm, &file);
             if (readData->desc < 0) { //TODO: <= 2 instead of < 0? Look up rsDataObjOpen return codes
                 rodsLog(LOG_ERROR, "my_read_obj: PROBLEM OPENING DATA OBJECT. Status =  %d", readData->desc);
                 return readData->desc;
@@ -210,7 +212,8 @@ public:
 	openedFile.l1descInx = readData->desc;
         openedFile.len = bytesBuf.len;
         
-        bytesRead = rsDataObjRead(readData->rsComm, &openedFile, &bytesBuf);
+        bytesRead = 0;
+//        bytesRead = rsDataObjRead(readData->rsComm, &openedFile, &bytesBuf);
         if (bytesRead < 0) {
             rodsLog(LOG_ERROR, "my_read_obj: PROBLEM READING FILE. Status =  %d", bytesRead);
             return bytesRead;
@@ -235,7 +238,6 @@ public:
         memset(&file, 0, sizeof(dataObjInp_t));
         memset(&openedFile, 0, sizeof(openedDataObjInp_t));
         memset(&bytesBuf, 0, sizeof(bytesBuf_t));
-
 
         // If this is the first call we need to create our data object before writing to it
         if (!writeData->desc) {
