@@ -67,7 +67,7 @@ public:
         char* p;
 
         char* outStr;
-        outStr = (char*)malloc(strlen(path));
+        outStr = (char*)malloc(strlen(path));  //FIXME: should this malloc one extra byte for the null terminator?
 
         p = strrchr (tmpPath, '/'); 
 
