@@ -80,7 +80,6 @@ public:
 
     int get( char *url, char *sourcePath, char *destPath, char *ext) {
 
-	CURL *curl;
 	CURLcode res = CURLE_OK;
 
         readData_t readData;
@@ -93,6 +92,14 @@ public:
 
 	struct curl_httppost *formpost=NULL;
 	struct curl_httppost *lastptr=NULL;
+
+	        // Zero fill structs
+        memset(&openedSource, 0, sizeof(openedDataObjInp_t));
+        memset(&readData, 0, sizeof(readData_t));
+        memset(&openedTarget, 0, sizeof(openedDataObjInp_t));
+        memset(&writeData, 0, sizeof(writeData_t));
+
+
 
 	curl_global_init(CURL_GLOBAL_ALL);
 
@@ -113,11 +120,6 @@ public:
                 CURLFORM_CONTENTTYPE, "application/octet-stream",
                 CURLFORM_END);
 
-        // Zero fill structs
-        memset(&openedSource, 0, sizeof(openedDataObjInp_t));
-        memset(&readData, 0, sizeof(readData_t));
-        memset(&openedTarget, 0, sizeof(openedDataObjInp_t));
-        memset(&writeData, 0, sizeof(writeData_t));
 
         // Set up writeData
         snprintf(writeData.path, MAX_NAME_LEN, "%s", destPath);
@@ -129,19 +131,16 @@ public:
         readData.desc = 0;	// the object is yet to be created
 	readData.rsComm = rsComm;
 
-        // Set up easy handler
- 	curl = curl_easy_init();
 
 	/* what URL that receives this POST */
         curl_easy_setopt(curl, CURLOPT_URL, url);
 
         curl_easy_setopt(curl, CURLOPT_READFUNCTION, &irodsCurl::my_read_obj);
-	rodsLog(LOG_ERROR, "after read");
         curl_easy_setopt(curl, CURLOPT_READDATA, &readData);
-        curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
-	rodsLog(LOG_ERROR, "before write");
+        //curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &irodsCurl::my_write_obj);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &writeData);
+	curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
 
         // CURL call
 	rodsLog(LOG_ERROR, "before res");
