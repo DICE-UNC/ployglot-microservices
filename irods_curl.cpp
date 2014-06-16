@@ -109,7 +109,7 @@ public:
                 CURLFORM_COPYNAME, "file",
                 CURLFORM_FILENAME, getName(sourcePath), 
                 CURLFORM_STREAM, &readData,
-                CURLFORM_CONTENTSLENGTH, 0,  //This needs to be the size of the upload
+                CURLFORM_CONTENTSLENGTH, 100,  //This needs to be the size of the upload
                 CURLFORM_CONTENTTYPE, "application/octet-stream",
                 CURLFORM_END);
 
@@ -136,15 +136,17 @@ public:
         curl_easy_setopt(curl, CURLOPT_URL, url);
 
         curl_easy_setopt(curl, CURLOPT_READFUNCTION, &irodsCurl::my_read_obj);
+	rodsLog(LOG_ERROR, "after read");
         curl_easy_setopt(curl, CURLOPT_READDATA, &readData);
         curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
-
+	rodsLog(LOG_ERROR, "before write");
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &irodsCurl::my_write_obj);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &writeData);
 
         // CURL call
+	rodsLog(LOG_ERROR, "before res");
         res = curl_easy_perform( curl );
-
+	rodsLog(LOG_ERROR, "curl done %d", res);
         // Some error logging
         if ( res != CURLE_OK ) {
             rodsLog( LOG_ERROR, "irodsCurl::get: cURL error: %s", curl_easy_strerror( res ) );
@@ -161,8 +163,8 @@ public:
         }
         if (readData.desc) {
             openedSource.l1descInx = readData.desc;
-            status = 0;
-//            status = rsDataObjClose(rsComm, &openedSource);
+            //status = 0;
+            status = rsDataObjClose(rsComm, &openedSource);
             if (status < 0) {
                 rodsLog(LOG_ERROR, "irodsCurl::get: rsDataObjClose failed for %s, status = %d",
                          readData.path, status);
@@ -178,7 +180,7 @@ public:
     static size_t my_read_obj(void *buffer, size_t size, size_t nmemb, void* userp) {
         struct readData_t *readData = (struct readData_t *) userp;
         rodsLog(LOG_ERROR, "my_read_obj: called");
-        return 0;  //Bail out immediately
+        //return 0;  //Bail out immediately
 
         dataObjInp_t file;
         openedDataObjInp_t openedFile;
@@ -201,9 +203,12 @@ public:
         if (!readData->desc) {
             strncpy(file.objPath, readData->path, MAX_NAME_LEN);
 
-            readData->desc = 5;
-//            readData->desc = rsDataObjOpen(readData->rsComm, &file);
-            if (readData->desc < 0) { //TODO: <= 2 instead of < 0? Look up rsDataObjOpen return codes
+//            readData->desc = 5;
+            readData->desc = rsDataObjOpen(readData->rsComm, &file);
+            rodsLog(LOG_ERROR, "File opened: %s %d", readData->path, readData->desc);
+
+
+	    if (readData->desc < 0) { //TODO: <= 2 instead of < 0? Look up rsDataObjOpen return codes
                 rodsLog(LOG_ERROR, "my_read_obj: PROBLEM OPENING DATA OBJECT. Status =  %d", readData->desc);
                 return CURL_READFUNC_ABORT;
             }
@@ -217,12 +222,14 @@ public:
 	openedFile.l1descInx = readData->desc;
         openedFile.len = bytesBuf.len;
         
-        bytesRead = 0;
-//        bytesRead = rsDataObjRead(readData->rsComm, &openedFile, &bytesBuf);
+        //bytesRead = 0;
+        bytesRead = rsDataObjRead(readData->rsComm, &openedFile, &bytesBuf);
         if (bytesRead < 0) {
             rodsLog(LOG_ERROR, "my_read_obj: PROBLEM READING FILE. Status =  %d", bytesRead);
             return CURL_READFUNC_ABORT;
         }
+
+	rodsLog(LOG_ERROR, "my_read_obj: returning %d", bytesRead);
         return (bytesRead);
     }
 
@@ -232,7 +239,8 @@ public:
         openedDataObjInp_t openedFile;	// input struct for rsDataObjWrite
         bytesBuf_t bytesBuf;	// input buffer for rsDataObjWrite
         size_t written;	// return value
-
+	
+	rodsLog(LOG_ERROR, "write called");
         // Make sure we have something to write to
         if (!writeData) {
             rodsLog( LOG_ERROR, "my_write_obj: writeData is NULL, status = %d", SYS_INTERNAL_NULL_INPUT_ERR );
@@ -272,7 +280,7 @@ public:
         written = rsDataObjWrite(writeData->rsComm, &openedFile, &bytesBuf);
         
         //TODO: should we be handling error cases when written < 0? Check return values of rsDataObjWrite
-
+	rodsLog(LOG_ERROR, "written: %d", written);
         return (written);
     }
 
