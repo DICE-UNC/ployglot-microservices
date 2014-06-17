@@ -116,7 +116,7 @@ public:
                 CURLFORM_COPYNAME, "file",
                 CURLFORM_FILENAME, getName(sourcePath), 
                 CURLFORM_STREAM, &readData,
-                CURLFORM_CONTENTSLENGTH, 100,  //This needs to be the size of the upload
+                CURLFORM_CONTENTSLENGTH, 100L,  //This needs to be the size of the upload
                 CURLFORM_CONTENTTYPE, "application/octet-stream",
                 CURLFORM_END);
 
