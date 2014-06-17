@@ -144,9 +144,7 @@ public:
 	curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
 
         // CURL call
-	rodsLog(LOG_ERROR, "before res");
         res = curl_easy_perform( curl );
-	rodsLog(LOG_ERROR, "curl done %d", res);
         // Some error logging
         if ( res != CURLE_OK ) {
             rodsLog( LOG_ERROR, "irodsCurl::get: cURL error: %s", curl_easy_strerror( res ) );
@@ -179,7 +177,6 @@ public:
 
     static size_t my_read_obj(void *buffer, size_t size, size_t nmemb, void* userp) {
         struct readData_t *readData = (struct readData_t *) userp;
-        rodsLog(LOG_ERROR, "my_read_obj: called");
         //return 0;  //Bail out immediately
 
         dataObjInp_t file;
@@ -205,7 +202,6 @@ public:
 
 //            readData->desc = 5;
             readData->desc = rsDataObjOpen(readData->rsComm, &file);
-            rodsLog(LOG_ERROR, "File opened: %s %d", readData->path, readData->desc);
 
 
 	    if (readData->desc < 0) { //TODO: <= 2 instead of < 0? Look up rsDataObjOpen return codes
@@ -229,7 +225,6 @@ public:
             return CURL_READFUNC_ABORT;
         }
 
-	rodsLog(LOG_ERROR, "my_read_obj: returning %d", bytesRead);
         return (bytesRead);
     }
 
@@ -240,7 +235,6 @@ public:
         bytesBuf_t bytesBuf;	// input buffer for rsDataObjWrite
         size_t written;	// return value
 	
-	rodsLog(LOG_ERROR, "write called");
         // Make sure we have something to write to
         if (!writeData) {
             rodsLog( LOG_ERROR, "my_write_obj: writeData is NULL, status = %d", SYS_INTERNAL_NULL_INPUT_ERR );
@@ -280,7 +274,6 @@ public:
         written = rsDataObjWrite(writeData->rsComm, &openedFile, &bytesBuf);
         
         //TODO: should we be handling error cases when written < 0? Check return values of rsDataObjWrite
-	rodsLog(LOG_ERROR, "written: %d", written);
         return (written);
     }
 
@@ -372,7 +365,6 @@ extern "C" {
 	int intSize = rodsObjStatOut->objSize;
 	long contSize = (long)intSize;
 
-    	rodsLog( LOG_ERROR, "Size of file %d", intSize );
 
         // Call irodsCurl::get
 
