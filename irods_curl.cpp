@@ -93,12 +93,13 @@ public:
 	struct curl_httppost *formpost=NULL;
 	struct curl_httppost *lastptr=NULL;
 
-	        // Zero fill structs
+
+
+	// Zero fill structs
         memset(&openedSource, 0, sizeof(openedDataObjInp_t));
         memset(&readData, 0, sizeof(readData_t));
         memset(&openedTarget, 0, sizeof(openedDataObjInp_t));
         memset(&writeData, 0, sizeof(writeData_t));
-
 
 
 	curl_global_init(CURL_GLOBAL_ALL);
@@ -290,19 +291,22 @@ extern "C" {
 
     int irods_curl_get( msParam_t* url, msParam_t* source_obj, msParam_t* ext_obj,
                                         msParam_t* dest_obj, ruleExecInfo_t* rei ) {
-        dataObjInp_t destObjInp, *myDestObjInp;	/* for parsing input object */
+        dataObjInp_t destObjInp, *myDestObjInp;	/* for parsing dest object */
+	dataObjInp_t dataObjInp, *myDataObjInp;
+	rodsObjStat_t *rodsObjStatOut = NULL;
+        rsComm_t *rsComm;
 
-        // Sanity checks
+	// Sanity checks
         if ( !rei || !rei->rsComm ) {
             rodsLog( LOG_ERROR, "irods_curl_get: Input rei or rsComm is NULL." );
             return ( SYS_INTERNAL_NULL_INPUT_ERR );
         }
 
+	rsComm = rei->rsComm;
+
 	// get destination path from sourcePath and exten.
 	char *sourceStr = parseMspForStr(source_obj);
 	char *extStr = parseMspForStr(ext_obj);
-
-	//char *source = "/tempZone/home/public/new.png";
 
 	char tmpSource[strlen(sourceStr) + 10];
 
@@ -336,8 +340,8 @@ extern "C" {
 
 	snprintf(destStr, strlen(sourceStr) + 10, "%s%s%s", tmpSource, ".", extStr);
 
-
 	fillStrInMsParam(dest_obj, destStr);
+
 
 
         //TODO: get rid of destObjInp and myDestObjInp and this whole block, just pass the destPath directly to myCurl.get
@@ -350,6 +354,24 @@ extern "C" {
 
         // Create irodsCurl instance
         irodsCurl myCurl( rei->rsComm );
+
+
+	// Get input content_size
+	    rei->status = parseMspForDataObjInp( inpParam1, &dataObjInp,
+                                         &myDataObjInp, 0 );
+
+    	if ( rei->status < 0 ) {
+    	    rodsLogAndErrorMsg( LOG_ERROR, &rsComm->rError, rei->status,
+                            "msiObjStat: input inpParam1 error. status = %d", rei->status );
+     	   return ( rei->status );
+    	}
+
+	rei->status = rsObjStat( rsComm, myDataObjInp, &rodsObjStatOut );
+
+
+	int intSize = rodsObjStatOut->objSize;
+
+    	rodsLog( LOG_ERROR, "Size of file %d", intSize );
 
         // Call irodsCurl::get
 
