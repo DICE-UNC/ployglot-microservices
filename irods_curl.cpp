@@ -78,7 +78,7 @@ public:
 }
 
 
-    int get( char *url, char *sourcePath, char *destPath, char *ext) {
+    int get( char *url, char *sourcePath, char *destPath, char *ext, long size) {
 
 	CURLcode res = CURLE_OK;
 
@@ -117,7 +117,7 @@ public:
                 CURLFORM_COPYNAME, "file",
                 CURLFORM_FILENAME, getName(sourcePath), 
                 CURLFORM_STREAM, &readData,
-                CURLFORM_CONTENTSLENGTH, 100L,  //This needs to be the size of the upload
+                CURLFORM_CONTENTSLENGTH, size,  //This needs to be the size of the upload
                 CURLFORM_CONTENTTYPE, "application/octet-stream",
                 CURLFORM_END);
 
@@ -357,7 +357,7 @@ extern "C" {
 
 
 	// Get input content_size
-	    rei->status = parseMspForDataObjInp( inpParam1, &dataObjInp,
+	    rei->status = parseMspForDataObjInp( source_obj, &dataObjInp,
                                          &myDataObjInp, 0 );
 
     	if ( rei->status < 0 ) {
@@ -370,12 +370,13 @@ extern "C" {
 
 
 	int intSize = rodsObjStatOut->objSize;
+	long contSize = (long)intSize;
 
     	rodsLog( LOG_ERROR, "Size of file %d", intSize );
 
         // Call irodsCurl::get
 
-        rei->status = myCurl.get( parseMspForStr( url ), sourceStr,  destObjInp.objPath, extStr);
+        rei->status = myCurl.get( parseMspForStr( url ), sourceStr,  destObjInp.objPath, extStr, contSize);
 
         // Done
         return rei->status;
