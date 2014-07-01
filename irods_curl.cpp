@@ -62,7 +62,7 @@ public:
     char *getName (const char *path) {
 
 	char tmpPath[strlen(path)]; //FIXME: does tmpPath do anything? why do we have this?
-      
+
 	strcpy(tmpPath, path);
 
         char* p;
@@ -79,7 +79,7 @@ public:
 
 
     int get( char *url, char *sourcePath, char *destPath, char *ext, long size) {
-
+	long httpStatus = 200;
 	CURLcode res = CURLE_OK;
 
         readData_t readData;
@@ -146,8 +146,18 @@ public:
         // CURL call
         res = curl_easy_perform( curl );
         // Some error logging
-        if ( res != CURLE_OK ) {
+          if ( res != CURLE_OK ) {
             rodsLog( LOG_ERROR, "irodsCurl::get: cURL error: %s", curl_easy_strerror( res ) );
+        }
+        else {
+            long http_code = 0;
+            curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &http_code);
+
+            if (http_code != 200) {
+                rodsLog( LOG_ERROR, "converstion returned error code %d", http_code );
+
+                httpStatus = -1;
+            }
         }
 
         // close iRODS objects
@@ -168,10 +178,12 @@ public:
                          readData.path, status);
             }
         }
-        
+
         /* then cleanup the formpost chain */
         curl_formfree(formpost);
-
+	if(httpStatus != 200){
+		return -1;
+	}
         return res;
     }
 
@@ -370,7 +382,11 @@ extern "C" {
 
         rei->status = myCurl.get( parseMspForStr( url ), sourceStr,  destObjInp.objPath, extStr, contSize);
 
-        // Done
+	if(rei->status == -1){
+		rei->status = rsDataObjUnlink(rsComm, &destObjInp);
+		rodsLog( LOG_ERROR, "MADE IT TO RETURN!" );
+        }
+	// Done
         return rei->status;
 
     }
