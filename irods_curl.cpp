@@ -384,7 +384,7 @@ extern "C" {
 
 	if(rei->status == -1){
 		rei->status = rsDataObjUnlink(rsComm, &destObjInp);
-		rodsLog( LOG_ERROR, "MADE IT TO RETURN!" );
+		fillStrInMsParam(dest_obj, "");
         }
 	// Done
         return rei->status;
