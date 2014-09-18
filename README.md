@@ -1,9 +1,8 @@
 ##Requirements 
 
-* irods 4.0 runtime and irods developers kit are installed on server
 * g++ is installed on machine (sudo apt-get install g++)
-* irods development tools is installed
-* irods runtime libraries are installed
+* irods 4.0 development tools is installed
+* irods 4.0 runtime libraries are installed
 * libcurl-dev is installed with openssl headers
 
 Tutorial for configuring new microservices can be found at https://github.com/irods/irods/blob/master/examples/microservices/microservice_tutorial.rst
