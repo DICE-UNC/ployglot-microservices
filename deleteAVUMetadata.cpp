@@ -14,7 +14,7 @@ extern "C" {
 
     // =-=-=-=-=-=-=-
     // 1. Write a standard issue microservice
-    int irods_hello(msParam_t *inPath, msParam_t *inAttr, msParam_t *inVal,
+    int deleteAVUMetadata(msParam_t *inPath, msParam_t *inAttr, msParam_t *inVal,
                     msParam_t* _out, ruleExecInfo_t* _rei ) {
         std::string my_str = parseMspForStr(inAttr);
 
@@ -30,7 +30,7 @@ extern "C" {
 	attrStr = parseMspForStr (inAttr);
 	valStr = parseMspForStr (inVal);
 	outStr = (char*)malloc(MAX_NAME_LEN);
-	snprintf(outStr, MAX_NAME_LEN, "Hello World!\nOur input string was: %s %s %s", pathStr, attrStr, valStr);
+	snprintf(outStr, MAX_NAME_LEN, "Our input string was: %s %s %s", pathStr, attrStr, valStr);
 
 	fillStrInMsParam (_out, outStr);
 
@@ -61,7 +61,7 @@ extern "C" {
         // 4. add the microservice function as an operation to the plugin
         //    the first param is the name / key of the operation, the second
         //    is the name of the function which will be the microservice
-        msvc->add_operation( "irods_hello", "irods_hello" );
+        msvc->add_operation( "deleteAVUMetadata", "deleteAVUMetadata" );
 
         // =-=-=-=-=-=-=-
         // 5. return the newly created microservice plugin
