@@ -1,9 +1,7 @@
 GCC = g++ 
 INC=-I/usr/include/irods/
 
-all: msvc_test hello curl_get
-
-	
+all: deleteAVUMetadata modAVUMetadata curl_get
 
 deleteAVUMetadata: 
 	${GCC} ${INC} -fPIC -shared -o libdeleteAVUMetadata.so deleteAVUMetadata.cpp -Wno-deprecated /usr/lib/irods/libirods_client.a 
