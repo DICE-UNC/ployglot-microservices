@@ -23,7 +23,6 @@ deleteAVUMetadata.cpp:
 
     make deleteAVUMetadata
 
-
 ## Running the microservices
 
 Curl:
@@ -38,9 +37,7 @@ Mod AVU:
 
     deleteAVUMetadata("Test_Path", "Test_Attribute", "Test_Value", "Test_unit", *out);
 
-
 ## Core.re configuration
-
 
 Within the Core.re file the following microservice, use the following confirguaration for automatic implementation of polyclone conversion
 
@@ -58,3 +55,5 @@ Within the Core.re file the following microservice, use the following confirguar
     }
     acPostProcForModifyAVUMetadata(*Option,*ItemType,*ItemName,*AName,*AValue,*AUnit) { }
     acPostProcForModifyAVUMetadata(*Option,*ItemType,*ItemName,*AName,*AValue) { }
+
+The URL passsed to `irods_curl_get` <http://polyglot.cci.drexel.edu> must be an available instance of the "Polyclone" server. <https://bitbucket.org/drexel/polyclone>
