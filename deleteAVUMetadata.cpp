@@ -14,7 +14,7 @@ extern "C" {
 
     // =-=-=-=-=-=-=-
     // 1. Write a standard issue microservice
-    int deleteAVUMetadata(msParam_t *inPath, msParam_t *inAttr, msParam_t *inVal,
+    int deleteAVUMetadata(msParam_t *inPath, msParam_t *inAttr, msParam_t *inVal, msParam_t *inUnit,
                     msParam_t* _out, ruleExecInfo_t* _rei ) {
         std::string my_str = parseMspForStr(inAttr);
 
@@ -23,14 +23,16 @@ extern "C" {
 	char *pathStr;
 	char *attrStr;
 	char *valStr;
+	char *unitStr;
 
 	/*************************************  USUAL INIT PROCEDURE **********************************/
 
 	pathStr = parseMspForStr (inPath);
 	attrStr = parseMspForStr (inAttr);
 	valStr = parseMspForStr (inVal);
+	unitStr = parseMspForStr (inUnit);
 	outStr = (char*)malloc(MAX_NAME_LEN);
-	snprintf(outStr, MAX_NAME_LEN, "Our input string was: %s %s %s", pathStr, attrStr, valStr);
+	snprintf(outStr, MAX_NAME_LEN, "Our input string was: %s %s %s %s", pathStr, attrStr, valStr, unitStr);
 
 	fillStrInMsParam (_out, outStr);
 
@@ -42,7 +44,7 @@ extern "C" {
         modAVUMetadataInp.arg2 = pathStr; /* Do I need to malloc something new and copy it in? */
         modAVUMetadataInp.arg3 = attrStr;
         modAVUMetadataInp.arg4 = valStr;
-	modAVUMetadataInp.arg5 = "unit";
+	modAVUMetadataInp.arg5 = unitStr;
 	returnCode = rsModAVUMetadata(_rei->rsComm, &modAVUMetadataInp);
 
 	return 0;
@@ -55,7 +57,7 @@ extern "C" {
         // =-=-=-=-=-=-=-
         // 3. allocate a microservice plugin which takes the number of function
         //    params as a parameter to the constructor
-        irods::ms_table_entry* msvc = new irods::ms_table_entry( 4 );
+        irods::ms_table_entry* msvc = new irods::ms_table_entry( 5 );
 
         // =-=-=-=-=-=-=-
         // 4. add the microservice function as an operation to the plugin
