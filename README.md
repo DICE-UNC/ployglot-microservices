@@ -24,7 +24,7 @@ Curl: irods_curl_get(*url, *source_object, *ext_object, *out );
 
 Mod AVU: modAVUMetadataMS("Test_Path", "Test_Attribute", "Test_Value", "Test_unit", *out);
 
-Mod AVU: deleteAVUMetadata("Test_Path", "Test_Attribute", "Test_Value", *out);
+Mod AVU: deleteAVUMetadata("Test_Path", "Test_Attribute", "Test_Value", "Test_unit", *out);
 
 
 ## Core.re configuration
