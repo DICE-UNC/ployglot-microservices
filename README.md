@@ -34,7 +34,7 @@ Within the Core.re file the following microservice, use the following confirguar
 
     acPostProcForModifyAVUMetadata(*Option,*ItemType,*ItemName,*AName,*AValue,*AUnit) { 
     	on(*AName == "ConvertMe") {
-    		irods_curl_get("http://144.118.173.125:5000/", *ItemName, *AValue, *out);
+    		irods_curl_get("http://polyglot.cci.drexel.edu/", *ItemName, *AValue, *out);
     		if(*out == ""){
     			deleteAVUMetadata(*ItemName, "ConvertMe", *AValue, *AUnit, *out3);
     			modAVUMetadata(*ItemName, "Conversion Error", *AValue, "dest", *out2);
