@@ -1,7 +1,7 @@
 GCC = g++ 
 INC=-I/usr/include/irods/
 
-all: msvc_test hello curl_get
+all: deleteAVUMetadata modAVUMetadata magicNumber curl_get
 
 	
 
@@ -21,5 +21,5 @@ curl_get:
 
 
 clean:
-	@rm -f libirods_msvc_test.so
+	@rm -f lib*.so
 
