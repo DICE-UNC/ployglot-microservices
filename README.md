@@ -11,20 +11,32 @@ Tutorial for configuring new microservices can be found at <https://github.com/i
 
 To compile the microservices, use the commande "make" followed by the following tag for each respective microservice...
 
-irods\_curl.cpp: make curl\_get
+irods\_curl.cpp:
 
-modAVUMetadataMS.cpp: make modAVUMetadata
+    make curl_get
 
-deleteAVUMetadata.cpp: make deleteAVUMetadata
+modAVUMetadataMS.cpp:
+
+    make modAVUMetadata
+
+deleteAVUMetadata.cpp:
+
+    make deleteAVUMetadata
 
 
 ## Running the microservices
 
-Curl: irods\_curl\_get(\*url, \*source\_object, \*ext\_object, \*out );
+Curl:
 
-Mod AVU: modAVUMetadataMS("Test\_Path", "Test\_Attribute", "Test\_Value", "Test\_unit", \*out);
+    irods_curl_get(*url, *source_object, *ext_object, *out);
 
-Mod AVU: deleteAVUMetadata("Test\_Path", "Test\_Attribute", "Test\_Value", "Test\_unit", \*out);
+Mod AVU:
+
+    modAVUMetadataMS("Test_Path", "Test_Attribute", "Test_Value", "Test_unit", *out);
+
+Mod AVU:
+
+    deleteAVUMetadata("Test_Path", "Test_Attribute", "Test_Value", "Test_unit", *out);
 
 
 ## Core.re configuration
