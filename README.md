@@ -48,7 +48,7 @@ Within the Core.re file the following microservice, use the following confirguar
     			deleteAVUMetadata(*ItemName, "ConvertMe", *AValue, *AUnit, *out3);
     			modAVUMetadata(*ItemName, "Conversion Error", *AValue, "dest", *out2);
     		}else{
-    			modAVUMetadata(*out, "Derived from", *ItemName, "source", *out2);
+    			modAVUMetadata(*out, "Derived from", *ItemName, "iRODS path", *out2);
     			deleteAVUMetadata(*ItemName, "ConvertMe", *AValue, *AUnit, *out3); 	
     		}
     	}
